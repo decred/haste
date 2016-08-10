@@ -16,22 +16,6 @@ The votes are compromised of vote bits.  Currently, the values used are either
 1 (Yes) or 0 (No).  In the near future, vote bits will be expanded so agendas
 can be voted on with different options.
 
-For example, suppose it is decided to put the block size up for a vote.  Vote
-bits are compromised of 2 bits which provides 4 (2^2) options.  Options for
-such a proposal could look like:
-
-* 0 - Keep the block size the same
-* 1 - Half the block size
-* 2 - Double the block size
-* 3 - No opinion
-
-So bit 0 would be used for Yes/No on the previous block and bits 1 and 2 would
-be the block size voting agenda.  In it's rudimentary form, this would look like:
-
-* 0<<1 + 1<<0 = 1b = 1
-* 2<<1 + 1<<0 = 100b = 4
-* 3<<1 + 1<<0 = 111b = 7
-
 ## Background
 
 Presently, Haste is essentially a renaming of the widely used stratum mining
@@ -177,12 +161,12 @@ The fields contained in params are:
 | -------------- | --- | --- |
 | JobID          | ID of the job. Used when submitting a solved shared to the server.                             | 76df |
 | PrevHash       | Hash of the previous block.  Used when deriving work.                                          | 7817c24aa99f3999a57dcfc8a7a834f9<br>2ebb442f8d519dbd000009e000000000 |
-| CoinBase1      | Initial part of the coinbase transaction.  Used when deriving work.                            | d52f367013ddc74d61a4f50c0d47c4b8<br>e87b6d89a603a04447bcd2b110c508e3<br>1d37308253d38bbe0464508f4eb1f12b<br>92e6431d41b01f01518d2d9b9b64fe93<br>010098588e9b1c650500030052a90000<br>b778171a134e691e01000000b1c70000<br>ce0f0000d052a1570000000000000000 |
+| CoinBase1      | Other part of the block header.  Used when deriving work.                                      | d52f367013ddc74d61a4f50c0d47c4b8<br>e87b6d89a603a04447bcd2b110c508e3<br>1d37308253d38bbe0464508f4eb1f12b<br>92e6431d41b01f01518d2d9b9b64fe93<br>010098588e9b1c650500030052a90000<br>b778171a134e691e01000000b1c70000<br>ce0f0000d052a1570000000000000000 |
 | CoinBase2      | Final part of the coinbase transaction.  Not used.                                             | Empty String |
 | MerkleBranches | Array of merkle branches. Unused at this time.                                                 | Empty Array |
-| BlockVersion   | Decred block version.  Used when deriving work.                                                | 01000000 |
-| Nbits          | Encoded current network difficulty.  Used for informational purposes.                          | 1a1778b7 |
-| Ntime          | Server's time when the job was transmitted. Used when submitting a solved share to the server. | 57a152d0 |
+| BlockVersion   | Decred block version.  Already in CoinBase 1, not useful.                                      | 01000000 |
+| Nbits          | Encoded current network difficulty.  Already in CoinBase 1, not useful.                        | 1a1778b7 |
+| Ntime          | Server's time when the job was transmitted. Already in CoinBase 1, not useful.                 | 57a152d0 |
 | CleanJobs      | When true, discard current work and re-calculate derived work.                                 | false |
 
 ## Deriving Work And Performing Hashing
@@ -211,10 +195,11 @@ the mining target.
 
 ### Validating Work
 
-The stratum target is converted to a standard mining difficulty by taking the
+The pool difficulty is converted to a standard mining difficulty by taking the
 highest allowed proof-of-work value that a Decred block can have and dividing
-that value by the stratum target.  The value for the main network is
-2^224 - 1 and the value for the test network is 2^232 - 1.
+that value by the pool difficulty.  The byte string is reversed and then
+encoded as big endian numbers. The value for the main network is 2^224 - 1 and
+the value for the test network is 2^232 - 1.
 
 The block header template generated above is then copied and modified to
 construct a finalized block header. This is done by overwriting the timestamp
@@ -349,7 +334,7 @@ Network = main | test
 mainPowLimit = 2^224 - 1
 testPowLimit = 2^232 - 1
 
-WorkTarget = "net"+PowLimit / pool.Target
+WorkTarget = "net"+"PowLimit" / pool.Target
 
 Step 08
 =======
